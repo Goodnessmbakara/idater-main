@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: dating-app-api
+    env: node
+    buildCommand: npm install --production=false && npm run build --production=false
+    startCommand: npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false 
