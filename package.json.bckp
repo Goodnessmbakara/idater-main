@@ -10,6 +10,12 @@
     "start": "node dist/index.js",
     "lint": "eslint"
   },
+  "scripts": {
+    "dev": "bun --hot src/index.ts",
+    "build": "bun build src/index.ts --outdir dist",
+    "start": "bun dist/index.js",
+    "lint": "eslint src/**/*.ts"
+  },
   "author": "Google LLC",
   "license": "Apache-2.0",
   "dependencies": {

@@ -37,7 +37,6 @@ export class ChatRepository {
 
   async createChat(participants: string[]): Promise<IChat> {
     try {
-      // Check for existing chat first
       const existingChat = await chatModel.findOne({
         participants: { $all: participants, $size: participants.length }
       }).populate({
@@ -49,28 +48,23 @@ export class ChatRepository {
         return existingChat;
       }
 
-      // Check message limit for the sender (assuming first participant is sender)
       const userId = participants[0];
       const user = await userModel.findById(userId);
 
       const isPremium = user.isPremium || user.role === 'admin'; 
       if (!isPremium) {
-        // Get today's date in YYYY-MM-DD format
         const today = new Date().toISOString().split('T')[0];
 
-        // Find or create today's quota record
         let quota = await MessageQuota.findOne({ userId, date: today });
 
         if (!quota) {
           quota = new MessageQuota({ userId, date: today, count: 0 });
         }
 
-        // Check if user has reached daily limit
         if (quota.count >= 5) {
           throw new Error('Daily message limit reached. Add coins to your account to send more messages.');
         }
 
-        // Increment message count
         quota.count += 1;
         await quota.save();
       }
@@ -249,7 +243,7 @@ export class ChatRepository {
         timestamp: new Date(),
         type: message.type ?? 'text',
         read: false,
-        id: new mongoose.Types.ObjectId().toString() // Add unique ID for message
+        id: new mongoose.Types.ObjectId().toString()
       };
 
       chat.messages.push(newMessage);

@@ -5,10 +5,10 @@
   "private": true,
   "main": "index.js",
   "scripts": {
-    "dev": "bun --hot src/index.ts",
-    "build": "bun build src/index.ts --outdir dist",
-    "start": "bun dist/index.js",
-    "lint": "eslint src/**/*.ts"
+    "dev": "nodemon --watch 'src/**' --ext 'ts,json' --exec 'npm run build && npm run start'",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "lint": "eslint"
   },
   "author": "Google LLC",
   "license": "Apache-2.0",

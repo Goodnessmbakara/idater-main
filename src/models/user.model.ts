@@ -22,6 +22,7 @@ export interface IUser extends Document {
   isOnline: boolean;
   lastSeen: Date;
   coins: number;
+  isPremium: boolean;
   profileViews: {
     viewerId: mongoose.Types.ObjectId;
     timestamp: Date;
