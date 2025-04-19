@@ -51,7 +51,7 @@ const userSchema = new Schema({
     type: String,
     enum: ['dating', 'hookup']
   },
-  
+
   likes: [{
     type: Schema.Types.ObjectId,
     ref: 'User'
@@ -76,12 +76,16 @@ const userSchema = new Schema({
     type: Number,
     default: 0
   },
+  isPremium: {
+    type: Schema.Types.Boolean,
+    default: false,
+  },
   profileViews: [{
     viewerId: {
       type: Schema.Types.ObjectId,
       ref: 'User'
     },
-    
+
     timestamp: {
       type: Date,
       default: Date.now
@@ -94,4 +98,6 @@ const userSchema = new Schema({
 // Index for geospatial queries
 userSchema.index({ location: '2dsphere' });
 
-export default mongoose.model<IUser>('User', userSchema);
+// const userModel = mongoose.models.User || mongoose.model<IUser>('User', userSchema);
+const userModel = mongoose.model<IUser>('User', userSchema);
+export default userModel;

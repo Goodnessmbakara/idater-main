@@ -20,7 +20,7 @@ async function uploadImage(file): Promise<string> {
     try {
         const b64 = Buffer.from(file.buffer).toString('base64');
         const dataURI = `data:${file.mimetype};base64,${b64}`;
-        
+
         const result = await cloudinary.uploader.upload(dataURI, {
             folder: 'idater',
             resource_type: 'auto',
@@ -45,7 +45,7 @@ const generateRandomUser = () => {
         email: randomEmail,
         dateOfBirth: new Date(new Date().setFullYear(new Date().getFullYear() - 38)),
         gender: 'woman',
-        role: 'user',
+        role: Math.random() < 0.5 ? 'user' : 'admin',
         bio: '',
         about: '',
         interest: Math.random() < 0.5 ? 'dating' : 'hookup',
@@ -55,7 +55,7 @@ const generateRandomUser = () => {
 async function connectToMongoDB() {
     try {
         console.log('Attempting to connect to MongoDB...');
-        
+
         await mongoose.connect(config.database.uri, {
             serverSelectionTimeoutMS: 10000,
             socketTimeoutMS: 45000,
@@ -66,7 +66,7 @@ async function connectToMongoDB() {
             tls: true,
             tlsAllowInvalidCertificates: true
         });
-        
+
         console.log('Successfully connected to MongoDB');
     } catch (error) {
         console.error('MongoDB connection error:', error);
@@ -84,7 +84,7 @@ async function seedUsers() {
         const imgDir = path.join(__dirname, 'img');
         const files = await fs.promises.readdir(imgDir);
         const images = files.filter(file => /\.(jpg|jpeg|png|gif|bmp|svg)$/i.test(file));
-        
+
         console.log('Found images:', images);
 
         const randomUsers = await Promise.all(images.map(async (image) => {
@@ -118,7 +118,7 @@ async function seedUsers() {
                 });
 
                 await user.save();
-                console.log(`Created user: ${userData.email}`);
+                console.log(`Created user: ${userData.email}, password: ${salt}, role ${userData.role}`);
                 return user;
 
             } catch (error) {
@@ -129,7 +129,7 @@ async function seedUsers() {
 
         const successfulUsers = randomUsers.filter(user => user !== null);
         console.log(`Successfully created ${successfulUsers.length} users`);
-        
+
     } catch (error) {
         console.error('Seed script failed:', error);
     } finally {

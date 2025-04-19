@@ -182,4 +182,5 @@ export class AdminRepository {
       throw new Error(`Error deleting user: ${error.message}`);
     }
   }
+
 }

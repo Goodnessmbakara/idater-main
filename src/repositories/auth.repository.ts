@@ -5,6 +5,7 @@ import VerificationModel from "../models/verification.model";
 import jwt from 'jsonwebtoken';
 import { config } from "../config";
 import { OAuth2Client } from 'google-auth-library';
+import { generateToken } from "../utils/jwt";
 
 
 export class AuthError extends Error {
@@ -51,8 +52,8 @@ export interface AuthTokens {
 export interface AuthRepository {
   // Email authentication
   signUpWithEmail(
-    email: string, 
-    password: string, 
+    email: string,
+    password: string,
   ): Promise<boolean>;
 
   signUpWithPhone(
@@ -61,10 +62,10 @@ export interface AuthRepository {
   ): Promise<{ verificationId: string }>;
 
   verifyOTP(
-    verificationId: string, 
+    verificationId: string,
     otp: string
   ): Promise<{ user: UserData; tokens: AuthTokens }>;
-  
+
   signInWithGoogle(idToken: string): Promise<{ user: Partial<UserData>; token: string }>;
 }
 
@@ -111,6 +112,7 @@ export class AuthRepositoryImpl implements AuthRepository {
     user: IUser,
     password: string
   ): Promise<string> {
+    console.log({ user, password }, 'user trying to login')
     try {
       const isValidPassword = await this.verifyPassWord(password, user.password);
       if (!isValidPassword) {
@@ -177,7 +179,7 @@ export class AuthRepositoryImpl implements AuthRepository {
     otp: string
   ): Promise<{ user: Partial<UserData>; token: string }> {
     try {
-      const verification = await VerificationModel.findOne({ 
+      const verification = await VerificationModel.findOne({
         verificationId,
         type: 'PHONE_SIGNUP'
       });
@@ -203,14 +205,19 @@ export class AuthRepositoryImpl implements AuthRepository {
       await user.save();
 
       // Generate token
-      const token = jwt.sign(
-        {
-          userId: user.id,
-          phoneNumber: user.phone
-        },
-        config.auth.jwtSecret,
-        { expiresIn: config.auth.tokenExpiry }
-      );
+      // const token = jwt.sign(
+      //   {
+      //     userId: user.id,
+      //     phoneNumber: user.phone
+      //   },
+      //   config.auth.jwtSecret,
+      //   { expiresIn: config.auth.tokenExpiry }
+      // );
+      const token = generateToken({
+        userId: user.id,
+        // phoneNumber: user.phone
+        role: user.role,
+      },)
 
       // Clean up verification
       await VerificationModel.findByIdAndDelete(verification.id);
@@ -288,7 +295,7 @@ export class AuthRepositoryImpl implements AuthRepository {
     return userModel.findOne({ email });
   }
 
-  async verifyPassWord(password:string, userHashedPassword:string): Promise<boolean> {    
+  async verifyPassWord(password: string, userHashedPassword: string): Promise<boolean> {
     try {
       const isMatch = await bcrypt.compare(password, userHashedPassword);
       return isMatch;
@@ -304,7 +311,7 @@ export class AuthRepositoryImpl implements AuthRepository {
         audience: config.auth.googleClientId
       });
       const payload = ticket.getPayload();
-      
+
       if (!payload) {
         throw new AuthError('Invalid Google token', AuthErrorCode.INVALID_CREDENTIALS);
       }

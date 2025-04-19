@@ -11,8 +11,20 @@
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "noImplicitAny": false,
-    "types": ["node"]
+    "types": [
+      "node"
+    ],
+    "noEmitOnError": false,
+    "typeRoots": [
+      "./node_modules/@types",
+      "./types"
+    ],
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ],
 }

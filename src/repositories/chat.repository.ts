@@ -4,8 +4,37 @@ import mongoose from 'mongoose';
 import userModel, { IUser } from '../models/user.model';
 import { config } from '../config';
 import { callmebotAlertAdmin } from '../services/callmebot';
+import { MessageQuota } from '../models/messageQuota.model';
 
 export class ChatRepository {
+  // async createChat(participants: string[]): Promise<IChat> {
+  //   try {
+  //     // Check for existing chat first
+  //     const existingChat = await chatModel.findOne({
+  //       participants: { $all: participants, $size: participants.length }
+  //     }).populate({
+  //       path: 'participants',
+  //       select: '-password'
+  //     }).populate('messages');
+
+  //     if (existingChat) {
+  //       return existingChat;
+  //     }
+
+  //     const chat = await chatModel.create({
+  //       participants,
+  //       messages: []
+  //     });
+
+  //     return await (await chat.populate({
+  //       path: 'participants',
+  //       select: '-password'
+  //     })).populate('messages');
+  //   } catch (error) {
+  //     throw new Error(`Error creating chat: ${error.message}`);
+  //   }
+  // }
+
   async createChat(participants: string[]): Promise<IChat> {
     try {
       // Check for existing chat first
@@ -20,6 +49,33 @@ export class ChatRepository {
         return existingChat;
       }
 
+      // Check message limit for the sender (assuming first participant is sender)
+      const userId = participants[0];
+      const user = await userModel.findById(userId);
+
+      const isPremium = user.isPremium || user.role === 'admin'; 
+      if (!isPremium) {
+        // Get today's date in YYYY-MM-DD format
+        const today = new Date().toISOString().split('T')[0];
+
+        // Find or create today's quota record
+        let quota = await MessageQuota.findOne({ userId, date: today });
+
+        if (!quota) {
+          quota = new MessageQuota({ userId, date: today, count: 0 });
+        }
+
+        // Check if user has reached daily limit
+        if (quota.count >= 5) {
+          throw new Error('Daily message limit reached. Add coins to your account to send more messages.');
+        }
+
+        // Increment message count
+        quota.count += 1;
+        await quota.save();
+      }
+
+      // Create the chat
       const chat = await chatModel.create({
         participants,
         messages: []
@@ -68,11 +124,78 @@ export class ChatRepository {
     }
   }
 
+  // async sendMessage(chatId: string, message: {
+  //   sender: string;
+  //   content: string;
+  //   coinsToDeduct?: number;
+  //   type: 'text' | 'image'
+  // }): Promise<IMessage> {
+  //   try {
+  //     const chat = await chatModel.findById(chatId).populate('participants');
+  //     if (!chat) {
+  //       throw new Error('Chat not found');
+  //     }
+
+  //     const isAnyParticipantAdmin = chat.participants.some(participant => (participant as any).role === 'admin');
+  //     const cost = message.coinsToDeduct ?? config.coins.perMessage
+
+  //     if (cost && !isAnyParticipantAdmin) {
+  //       const user = await userModel.findById(message.sender);
+  //       if (!user) {
+  //         throw new Error('Sender not found');
+  //       }
+
+  //       if (user.role !== 'admin') {
+  //         if (user.coins <= 0) {
+  //           SocketService.emitToUser(
+  //             message.sender.toString(),
+  //             'chat:error',
+  //             { message: 'You have no coins to send a message.' }
+  //           );
+  //           throw new Error('User has no coins');
+  //         }
+  //         user.coins -= message.coinsToDeduct;
+  //         await user.save();
+  //       }
+  //     }
+
+  //     const newMessage = {
+  //       sender: new mongoose.Types.ObjectId(message.sender),
+  //       content: message.content,
+  //       timestamp: new Date(),
+  //       type: message.type ?? 'text',
+  //       read: false,
+  //       id: new mongoose.Types.ObjectId().toString() // Add unique ID for message
+  //     };
+
+  //     chat.messages.push(newMessage);
+  //     chat.lastMessage = newMessage;
+  //     await chat.save();
+
+  //     // Notify other participants
+  //     chat.participants
+  //       .filter(p => p.toString() !== message.sender)
+  //       .forEach(participantId => {
+  //         SocketService.emitToUser(
+  //           participantId.toString(),
+  //           'chat:message',
+  //           { chatId, message: newMessage }
+  //         );
+  //       });
+
+  //     isAnyParticipantAdmin && callmebotAlertAdmin(message.content);
+
+  //     return newMessage;
+  //   } catch (error) {
+  //     throw new Error(`Error sending message: ${error.message}`);
+  //   }
+  // }
+
   async sendMessage(chatId: string, message: {
     sender: string;
     content: string;
     coinsToDeduct?: number;
-    type: 'text'|'image'
+    type: 'text' | 'image'
   }): Promise<IMessage> {
     try {
       const chat = await chatModel.findById(chatId).populate('participants');
@@ -80,27 +203,44 @@ export class ChatRepository {
         throw new Error('Chat not found');
       }
 
-      const isAnyParticipantAdmin = chat.participants.some(participant => (participant as any).role === 'admin'); 
-      const cost = message.coinsToDeduct ?? config.coins.perMessage
+      const isAnyParticipantAdmin = chat.participants.some(participant => (participant as any).role === 'admin');
+      const cost = message.coinsToDeduct ?? config.coins.perMessage;
 
-      if (cost && !isAnyParticipantAdmin) {
-        const user = await userModel.findById(message.sender);
-        if (!user) {
-          throw new Error('Sender not found');
+      // Get sender user
+      const user = await userModel.findById(message.sender);
+      if (!user) {
+        throw new Error('Sender not found');
+      }
+
+      // Check message quota for non-admin users
+      if (user.role !== 'admin') {
+        // Get today's date in YYYY-MM-DD format for quota tracking
+        const today = new Date().toISOString().split('T')[0];
+
+        // Find or create today's quota record
+        let quota = await MessageQuota.findOne({
+          userId: message.sender,
+          date: today
+        });
+
+        if (!quota) {
+          quota = new MessageQuota({
+            userId: message.sender,
+            date: today,
+            count: 0
+          });
         }
 
-        if (user.role !== 'admin') {
-          if (user.coins <= 0) {
-            SocketService.emitToUser(
-              message.sender.toString(),
-              'chat:error',
-              { message: 'You have no coins to send a message.' }
-            );
-            throw new Error('User has no coins');
-          }
-          user.coins -= message.coinsToDeduct;
-          await user.save();
+        // If user has no coins and already sent 5 messages today, reject
+        if (!user.isPremium && quota.count >= 5) {
+          SocketService.emitToUser(
+            message.sender.toString(),
+            'chat:error',
+            { message: 'Daily message limit reached. Add coins to your account to send more messages.' }
+          );
+          throw new Error('Daily message limit reached');
         }
+
       }
 
       const newMessage = {
@@ -127,7 +267,7 @@ export class ChatRepository {
           );
         });
 
-        isAnyParticipantAdmin && callmebotAlertAdmin(message.content);
+      isAnyParticipantAdmin && callmebotAlertAdmin(message.content);
 
       return newMessage;
     } catch (error) {
