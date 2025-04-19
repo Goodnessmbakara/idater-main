@@ -1,4 +1,4 @@
 node_modules
 .env
 .envv
-./dist
+**/dist/
