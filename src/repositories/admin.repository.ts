@@ -58,18 +58,50 @@ export class AdminRepository {
     try {
       const user = await userModel.findByIdAndUpdate(
         userId,
-        { $inc: { coins : coins } },
+        { $inc: { coins: coins } },
         { new: true }
       );
-      
+
 
       if (!user) {
         throw new Error('User not found');
       }
 
-      
+
 
       return user
+    } catch (error) {
+      throw new Error(`Error adding coins: ${error.message}`);
+    }
+  }
+
+  async subScribeUser(userId: string): Promise<IUser> {
+    try {
+      const user = await userModel.findById(userId);
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      user.isPremium = true;
+      await user.save();
+
+      return user;
+    } catch (error) {
+      throw new Error(`Error adding coins: ${error.message}`);
+    }
+  }
+
+  async unSubScribeUser(userId: string): Promise<IUser> {
+    try {
+      const user = await userModel.findById(userId);
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      user.isPremium = false;
+      await user.save();
+
+      return user;
     } catch (error) {
       throw new Error(`Error adding coins: ${error.message}`);
     }
@@ -135,8 +167,8 @@ export class AdminRepository {
     limit: number = 50,
   ): Promise<{ users: IUser[], total: number }> {
     try {
-      
-  
+
+
       const query = { role: { $ne: 'admin' } };
       const [users, total] = await Promise.all([
         userModel
