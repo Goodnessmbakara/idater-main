@@ -72,7 +72,7 @@ adminRouter.put('/users/:userId',
     } catch (error) {
       res.sendError('Error updating user', 500);
     }
-});
+  });
 
 /**
  * @swagger
@@ -122,7 +122,7 @@ adminRouter.get('/reports',
     } catch (error) {
       res.sendError('Error fetching reports', 500);
     }
-});
+  });
 
 /**
  * @swagger
@@ -176,7 +176,7 @@ adminRouter.put('/reports/:reportId',
     } catch (error) {
       res.sendError('Error updating report', 500);
     }
-});
+  });
 
 /**
  * @swagger
@@ -211,7 +211,40 @@ adminRouter.post('/users/:userId/coins',
     } catch (error) {
       res.sendError('Error adding coins', 500);
     }
-});
+  });
+
+
+adminRouter.post('/users/:userId/subscribe',
+  authMiddleware,
+  adminMiddleware,
+  async (req, res) => {
+    try {
+      // const { coins } = req.body;
+      // if (!coins || coins <= 0) {
+      //   return res.sendError('Invalid coin amount', 400);
+      // }
+      const user = await adminRepository.subScribeUser(req.params.userId);
+      res.sendSuccess(user);
+    } catch (error) {
+      res.sendError('Error Subscribing user', 500);
+    }
+  });
+
+  adminRouter.post('/users/:userId/unsubscribe',
+    authMiddleware,
+    adminMiddleware,
+    async (req, res) => {
+      try {
+        // const { coins } = req.body;
+        // if (!coins || coins <= 0) {
+        //   return res.sendError('Invalid coin amount', 400);
+        // }
+        const user = await adminRepository.unSubScribeUser(req.params.userId);
+        res.sendSuccess(user);
+      } catch (error) {
+        res.sendError('Error unsubscribing user', 500);
+      }
+    });
 
 /**
  * @swagger
@@ -262,7 +295,7 @@ adminRouter.get('/dashboard',
     } catch (error) {
       res.sendError('Error fetching dashboard stats', 500);
     }
-});
+  });
 
 /**
  * @swagger
@@ -304,7 +337,7 @@ adminRouter.get('/users',
       const limit = parseInt(req.query.limit as string) || 50;
 
       const { users, total } = await adminRepository.getAllUsers(page, limit);
-      
+
       res.sendSuccess({
         users,
         pagination: {
@@ -317,7 +350,7 @@ adminRouter.get('/users',
     } catch (error) {
       res.sendError('Error fetching users', 500);
     }
-});
+  });
 
 /**
  * @swagger
@@ -356,7 +389,7 @@ adminRouter.get('/users/:userId/details',
       }
       res.sendError('Error fetching user details', 500);
     }
-});
+  });
 
 /**
  * @swagger
@@ -383,6 +416,6 @@ adminRouter.delete('/users/:userId',
     } catch (error) {
       res.sendError('Error deleting user', 500);
     }
-});
+  });
 
 export default adminRouter;
