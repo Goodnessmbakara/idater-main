@@ -6,6 +6,8 @@ import { config } from '../config';
 import { callmebotAlertAdmin } from '../services/callmebot';
 import { MessageQuota } from '../models/messageQuota.model';
 
+const QUOTA_COUNT = 7;
+
 export class ChatRepository {
   // async createChat(participants: string[]): Promise<IChat> {
   //   try {
@@ -51,7 +53,7 @@ export class ChatRepository {
       const userId = participants[0];
       const user = await userModel.findById(userId);
 
-      const isPremium = user.isPremium || user.role === 'admin'; 
+      const isPremium = user.isPremium || user.role === 'admin';
       if (!isPremium) {
         const today = new Date().toISOString().split('T')[0];
 
@@ -61,7 +63,7 @@ export class ChatRepository {
           quota = new MessageQuota({ userId, date: today, count: 0 });
         }
 
-        if (quota.count >= 5) {
+        if (quota.count >= QUOTA_COUNT) {
           throw new Error('Daily message limit reached. Add coins to your account to send more messages.');
         }
 
@@ -197,25 +199,34 @@ export class ChatRepository {
         throw new Error('Chat not found');
       }
 
+      // NEWW ________________________-----------------------------
+      const today = new Date().toISOString().split('T')[0];
+
+      let quota = await MessageQuota.findOne({
+        userId: message.sender,
+        date: today
+      });
+
       const isAnyParticipantAdmin = chat.participants.some(participant => (participant as any).role === 'admin');
       const cost = message.coinsToDeduct ?? config.coins.perMessage;
 
       // Get sender user
       const user = await userModel.findById(message.sender);
+
       if (!user) {
         throw new Error('Sender not found');
       }
 
       // Check message quota for non-admin users
-      if (user.role !== 'admin') {
+      if (user.role !== 'admin' && user.isPremium === false) {
         // Get today's date in YYYY-MM-DD format for quota tracking
-        const today = new Date().toISOString().split('T')[0];
+        // const today = new Date().toISOString().split('T')[0];
 
         // Find or create today's quota record
-        let quota = await MessageQuota.findOne({
-          userId: message.sender,
-          date: today
-        });
+        // let quota = await MessageQuota.findOne({
+        //   userId: message.sender,
+        //   date: today
+        // });
 
         if (!quota) {
           quota = new MessageQuota({
@@ -226,7 +237,7 @@ export class ChatRepository {
         }
 
         // If user has no coins and already sent 5 messages today, reject
-        if (!user.isPremium && quota.count >= 5) {
+        if (!user.isPremium && quota.count >= QUOTA_COUNT) {
           SocketService.emitToUser(
             message.sender.toString(),
             'chat:error',
@@ -260,6 +271,9 @@ export class ChatRepository {
             { chatId, message: newMessage }
           );
         });
+
+      quota.count += 1;
+      await quota.save();
 
       isAnyParticipantAdmin && callmebotAlertAdmin(message.content);
 
