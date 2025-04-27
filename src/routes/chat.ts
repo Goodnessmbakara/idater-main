@@ -77,8 +77,8 @@ chatRouter.get('/', authMiddleware, async (req, res) => {
  *       500:
  *         description: Internal server error
  */
-chatRouter.post('/admin', 
-  authMiddleware, 
+chatRouter.post('/admin',
+  authMiddleware,
   async (req, res) => {
     try {
       const chat = await chatRepository.createChatWithAdmin([
@@ -88,7 +88,7 @@ chatRouter.post('/admin',
     } catch (error) {
       res.sendError('Error creating chat with admin', 500);
     }
-});
+  });
 
 /**
  * @swagger
@@ -114,9 +114,9 @@ chatRouter.post('/admin',
  *       500:
  *         description: Internal server error
  */
-chatRouter.post('/createOrRetrieve/:userId', 
-  authMiddleware, 
-  // canMessageMiddleware, 
+chatRouter.post('/createOrRetrieve/:userId',
+  authMiddleware,
+  // canMessageMiddleware,
   async (req, res) => {
     try {
       const chat = await chatRepository.createChat([
@@ -127,7 +127,7 @@ chatRouter.post('/createOrRetrieve/:userId',
     } catch (error) {
       res.sendError('Error creating chat', 500);
     }
-});
+  });
 
 /**
  * @swagger
@@ -153,8 +153,8 @@ chatRouter.post('/createOrRetrieve/:userId',
  *       500:
  *         description: Internal server error
  */
-chatRouter.get('/getByid/:chatId', 
-  authMiddleware, 
+chatRouter.get('/getByid/:chatId',
+  authMiddleware,
   async (req, res) => {
     try {
       const chat = await chatRepository.getChatById(req.params.chatId);
@@ -165,7 +165,7 @@ chatRouter.get('/getByid/:chatId',
     } catch (error) {
       res.sendError('Error retrieving chat', 500);
     }
-});
+  });
 
 
 /**
@@ -225,7 +225,7 @@ chatRouter.post('/:chatId/messages',
         sender: req.user.userId,
         content,
         coinsToDeduct: req.coinsRequired,
-        type: type??'text'
+        type: type ?? 'text'
       });
 
       res.sendSuccess(message);
@@ -235,7 +235,7 @@ chatRouter.post('/:chatId/messages',
       }
       res.sendError('Error sending message', 500);
     }
-});
+  });
 
 /**
  * @swagger
@@ -280,6 +280,6 @@ chatRouter.get('/message-cost',
     } catch (error) {
       res.sendError('Error fetching message cost', 500);
     }
-});
+  });
 
 export default chatRouter; 
