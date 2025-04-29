@@ -207,15 +207,21 @@ export class UserRepository {
   }
 
   async updateOnlineStatus(userId: string, isOnline: boolean): Promise<void> {
-    try {
-      await userModel.findByIdAndUpdate(userId, {
-        isOnline,
-        lastSeen: isOnline ? undefined : new Date()
-      });
-    } catch (error) {
-      throw new Error(`Error updating online status: ${error.message}`);
+    let retries = 3;
+    while (retries--) {
+      try {
+        await userModel.findByIdAndUpdate(userId, {
+          isOnline,
+          lastSeen: isOnline ? undefined : new Date()
+        });
+        return;
+      } catch (error) {
+        if (retries === 0) throw new Error(`Error updating online status: ${error.message}`);
+        await new Promise(res => setTimeout(res, 1000)); // wait 1s before retry
+      }
     }
   }
+  
 
   async recordProfileView(userId: string, viewerId: string): Promise<void> {
     try {

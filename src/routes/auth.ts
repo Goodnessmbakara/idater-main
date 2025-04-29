@@ -85,8 +85,16 @@ authrouter.post('/register', async (req, res, next) => {
       if (!validateEmailAndPassword(email, password, res)) {
         return;
       }
-      await authRepository.signUpWithEmail(email, password);
-      return res.sendSuccess('User registered successfully', 201);
+      const user = await authRepository.signUpWithEmail(email, password);
+      const token = await authRepository.loginWithEmail(user, password);
+      return res.sendSuccess({
+        message: 'User registered successfully',
+        token,
+        user: {
+          id: user.id,
+          email: user.email
+        }
+      }, 201);
     }
 
     if (phoneNumber) {

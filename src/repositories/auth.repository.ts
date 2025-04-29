@@ -54,7 +54,7 @@ export interface AuthRepository {
   signUpWithEmail(
     email: string,
     password: string,
-  ): Promise<boolean>;
+  ): Promise<IUser>;
 
   signUpWithPhone(
     phoneNumber: string,
@@ -81,33 +81,31 @@ export class AuthRepositoryImpl implements AuthRepository {
   constructor() {
     this.googleClient = new OAuth2Client(config.auth.googleClientId);
   }
-
   async signUpWithEmail(
     email: string,
     password: string,
-  ): Promise<boolean> {
+  ): Promise<IUser> {
     try {
       const existingUser = await userModel.findOne({ email });
       if (existingUser) {
         throw new AuthError('Email already exists', AuthErrorCode.EMAIL_ALREADY_EXISTS);
       }
-
+  
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(password, salt);
-
+  
       const user = new userModel({
         email,
         password: hashedPassword,
         role: 'user'
       });
-
+  
       await user.save();
-      return true;
+      return user;
     } catch (error) {
       this.handleError(error);
     }
   }
-
   async loginWithEmail(
     user: IUser,
     password: string
